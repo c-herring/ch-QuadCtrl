@@ -4,6 +4,7 @@
  *  Created on: Mar 18, 2017
  *      Author: HeZ
  */
+#include "PIDMotor.h"
 
 #ifndef CH_QUADCTRL_H_
 #define CH_QUADCTRL_H_
@@ -48,7 +49,12 @@ uint8_t rxB;						// Single RX byte from the circular DMA buffer
 // PWM timer handle
 TIM_HandleTypeDef htim4;
 
+// -------- Motor PID Stuff --------
+PIDMotor_TypeDef MotorA;
+#define PID_TD 25 // ms PID loop time
 
+// -------- Function Definitions --------
+extern void GPIO_Init(void);
 
 #ifdef __cplusplus
 }

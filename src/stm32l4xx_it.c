@@ -15,6 +15,7 @@
 #include <cmsis_os.h>
 #endif
 #include "stm32l4xx_it.h"
+#include "ch-QuadCtrl.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -39,4 +40,12 @@ void SysTick_Handler(void)
 #ifdef USE_RTOS_SYSTICK
 	osSystickHandler();
 #endif
+}
+
+//
+// USART2 Interrupt handler
+//
+void USART2_IRQHandler(void)
+{
+	HAL_UART_IRQHandler(&huart2);
 }
