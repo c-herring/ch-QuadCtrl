@@ -26,6 +26,7 @@ void Motor_Init(PIDMotor_TypeDef *motor, PIDParams_TypeDef _pid_params, uint32_t
 
 	// Set intial values
 	motor->encPos = 0;
+	motor->encState = 0;
 	motor->lastEncPos = 0;
 	motor->vel = 0.0f;
 	motor->velSet = 0.0f;

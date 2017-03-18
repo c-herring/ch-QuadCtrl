@@ -15,15 +15,15 @@ extern "C" {
 
 // ------- Hardware Definitions -------
 // Pin and port for encoder signals. Note these are handled in the 10-15 ISR, so must be pins 10-15
-#define Encoder1_A_Port	GPIOA
-#define Encoder1_A_Pin  GPIO_PIN_11
-#define Encoder1_B_Port  GPIOA
-#define Encoder1_B_Pin  GPIO_PIN_12
+#define Encoder0_A_Port	GPIOA
+#define Encoder0_A_Pin  GPIO_PIN_11
+#define Encoder0_B_Port  GPIOA
+#define Encoder0_B_Pin  GPIO_PIN_12
 // ----
-#define Encoder2_A_Port	GPIOB
-#define Encoder2_A_Pin  GPIO_PIN_13
-#define Encoder2_B_Port  GPIOB
-#define Encoder2_B_Pin  GPIO_PIN_14
+#define Encoder1_A_Port	GPIOB
+#define Encoder1_A_Pin  GPIO_PIN_13
+#define Encoder1_B_Port  GPIOB
+#define Encoder1_B_Pin  GPIO_PIN_14
 
 // ------- UART Stuff --------
 // Create a global UART2 Handle
@@ -48,13 +48,28 @@ uint8_t rxB;						// Single RX byte from the circular DMA buffer
 // ------- Timer and PWM stuff -------
 // PWM timer handle
 TIM_HandleTypeDef htim4;
+#define Motor0_PWM_Port 	GPIOB
+#define Motor0_PWM_Pin		GPIO_PIN_6
+#define Motor1_PWM_Port		GPIOB
+#define Motor1_PWM_Pin		GPIO_PIN_8
 
 // -------- Motor PID Stuff --------
-PIDMotor_TypeDef MotorA;
+PIDMotor_TypeDef Motor0;
+PIDMotor_TypeDef Motor1;
 #define PID_TD 25 // ms PID loop time
+#define PWM_PERIOD 7999
+
+// -------- Encoder Stuff --------
+// Quadrature encoder lookup table
+extern int8_t lookup_table[];
 
 // -------- Function Definitions --------
 extern void GPIO_Init(void);
+void SystemClock_Config(void);
+void USART2_UART_Init(void);
+void GPIO_Init(void);
+void TIM4_Init(void);
+
 
 #ifdef __cplusplus
 }

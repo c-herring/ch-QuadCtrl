@@ -39,6 +39,7 @@ typedef struct {
 typedef struct {
 	PIDControl_TypeDef pid;
 
+	uint32_t encState;
 	int32_t encPos; // TODO: Add functionality to wrap-around if we go past +2^31-1 or -2^31
 	int32_t lastEncPos;
 
