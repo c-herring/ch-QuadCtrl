@@ -5,6 +5,7 @@
  *      Author: HeZ
  */
 
+#include "stm32l4xx.h"
 #include "PIDMotor.h"
 
 
@@ -32,6 +33,8 @@ void Motor_Init(PIDMotor_TypeDef *motor, PIDParams_TypeDef _pid_params, uint32_t
 	motor->velSet = 0.0f;
 	motor->pid.processParam = 0.0f;
 	motor->pid.rawOut = 0.0f;
+
+	//motor->hw = hwDesc;
 }
 
 // Initialise the PID strucutre
@@ -44,7 +47,7 @@ void PID_Init(PIDControl_TypeDef *pid, PIDParams_TypeDef _pid_params)
 }
 
 // Compute PID
-extern void PID_Compute(PIDMotor_TypeDef *motor)
+void PID_Compute(PIDMotor_TypeDef *motor)
 {
 	// Current velocity
 	motor->vel = (float)(motor->encPos - motor->lastEncPos)/motor->pid.pidRate*1000;
@@ -52,36 +55,55 @@ extern void PID_Compute(PIDMotor_TypeDef *motor)
 	// Calc the error
 	motor->pid.error = motor->velSet - motor->vel;
 
-	motor->pid.processParam = motor->pid.params.Kp*motor->pid.error + motor->pid.params.Kd*(motor->pid.error - motor->pid.prev_error) + motor->pid.params.Ki*motor->pid.Ierror;
+	motor->pid.pid_error = motor->pid.params.Kp*motor->pid.error + motor->pid.params.Kd*(motor->pid.error - motor->pid.prev_error) + motor->pid.params.Ki*motor->pid.Ierror;
+
+	motor->debug1 = motor->pid.params.Kp*motor->pid.error;
+	motor->debug2 = motor->pid.params.Kd*(motor->pid.error - motor->pid.prev_error);
+	motor->debug3 = motor->pid.params.Ki*motor->pid.Ierror;
 
 	// Save last error
 	motor->pid.prev_error =  motor->pid.error;
 
-	motor->pid.rawOut += motor->pid.processParam;
-	if (motor->pid.rawOut > motor->pid.outLim) motor->pid.rawOut = motor->pid.outLim;
-	if (motor->pid.rawOut < 0) motor->pid.rawOut = 0;
+	motor->pid.processParam += motor->pid.pid_error;
+	//if (motor->pid.processParam > motor->pid.outLim) motor->pid.processParam = motor->pid.outLim;
+	//if (motor->pid.processParam < 0) motor->pid.processParam = 0;
+
+	// Limit the range of the process parameter
+	if (motor->pid.processParam > motor->pid.outLim) motor->pid.processParam = motor->pid.outLim;
+	if (motor->pid.processParam < -motor->pid.outLim) motor->pid.processParam = -motor->pid.outLim;
+
+
+	if (motor->velSet >= 0)
+	{
+		motor->pid.rawOut = (motor->pid.processParam > 0) ? motor->pid.processParam : 0;
+	}
+	else
+	{
+		motor->pid.rawOut = (motor->pid.processParam < 0) ? -motor->pid.processParam : 0;
+	}
+
+	//if (motor->velSet >= 0)
+	//if (motor->velSet >= 0)
+	//{
+	//	motor->pid.processParam > motor->pid.outLim ? motor->pid.processParam = motor->pid.outLim : 0;
+	//} else {
+	//	motor->pid.processParam > motor->pid.outLim ? motor->pid.processParam = motor->pid.outLim : 0;
+	//}
+
 
 	motor->pid.Ierror += motor->pid.error;
 	if (motor->pid.Ierror > motor->pid.Ierror_limit) motor->pid.Ierror = motor->pid.Ierror_limit;
 	if (motor->pid.Ierror < -motor->pid.Ierror_limit) motor->pid.Ierror = -motor->pid.Ierror_limit;
+	if (motor->velSet == 0) motor->pid.Ierror = 0;
 
 
 
 }
 
-extern void Motor_Vel_Set(PIDMotor_TypeDef *motor, float vel)
+void PID_VelSet(PIDMotor_TypeDef *motor, float vel)
 {
 	motor->velSet = vel;
 }
-
-
-
-
-
-
-
-
-
 
 
 

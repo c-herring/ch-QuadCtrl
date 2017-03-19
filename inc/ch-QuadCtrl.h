@@ -28,7 +28,7 @@ extern "C" {
 // ------- UART Stuff --------
 // Create a global UART2 Handle
 UART_HandleTypeDef huart2;
-// Create a global DMA handle that will be connected to UART2 recieve
+// Create a global DMA handle that will be connected to UART2 receive
 DMA_HandleTypeDef hdma_usart2_rx;
 
 // UART NVIC Priorities
@@ -48,16 +48,24 @@ uint8_t rxB;						// Single RX byte from the circular DMA buffer
 // ------- Timer and PWM stuff -------
 // PWM timer handle
 TIM_HandleTypeDef htim4;
+#define Motor0_DIR_Port		GPIOC
+#define Motor0_DIR_Pin		GPIO_PIN_8
+#define Motor1_DIR_Port		GPIOC
+#define Motor1_DIR_Pin		GPIO_PIN_6
 #define Motor0_PWM_Port 	GPIOB
 #define Motor0_PWM_Pin		GPIO_PIN_6
 #define Motor1_PWM_Port		GPIOB
 #define Motor1_PWM_Pin		GPIO_PIN_8
+#define Motor0_TIM_Channel	TIM_CHANNEL_1
+#define Motor1_TIM_Channel	TIM_CHANNEL_3
+#define Motor_FORWARD 		GPIO_PIN_SET
+#define Motor_REVERSE 		GPIO_PIN_RESET
 
 // -------- Motor PID Stuff --------
 PIDMotor_TypeDef Motor0;
 PIDMotor_TypeDef Motor1;
 #define PID_TD 25 // ms PID loop time
-#define PWM_PERIOD 7999
+#define PWM_PERIOD 3999
 
 // -------- Encoder Stuff --------
 // Quadrature encoder lookup table
@@ -69,6 +77,7 @@ void SystemClock_Config(void);
 void USART2_UART_Init(void);
 void GPIO_Init(void);
 void TIM4_Init(void);
+void PIDMotors_Init(void);
 
 
 #ifdef __cplusplus

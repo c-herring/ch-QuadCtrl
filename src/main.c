@@ -11,6 +11,7 @@
 
 #include "stm32l4xx.h"
 #include "stm32l4xx_nucleo.h"
+#include "PIDMotor.h"
 #include "ch-QuadCtrl.h"
 #include "string.h"
 // Define the global encoder lookup table
@@ -25,11 +26,14 @@ int main(void)
 	// Init UART2
 	USART2_UART_Init();
 
+	PIDMotors_Init();
+
 	// Initialise Timer 4
 	TIM4_Init();
 	// Start both PWM Channels
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+
 
 	// Initialise the stopwatches
 	uint32_t LEDStopwatch = HAL_GetTick();
@@ -42,14 +46,69 @@ int main(void)
 			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 			LEDStopwatch = HAL_GetTick();
 			// Print some debug stuff
-			//sprintf(txbuff, "Motor0 Enc = %d\tMotor1 Enc = %d\n\r", Motor0.encPos, Motor1.encPos);
-			//HAL_UART_Transmit(&huart2, (uint8_t*)txbuff, strlen(txbuff), 0xff);
+			sprintf(txbuff, "abs = %lu\traw = %f\tvel0 = %f\tparam = %f\terror = %0.24f\n\r", (uint32_t) fabsf(Motor0.pid.rawOut), Motor0.pid.rawOut, Motor0.vel, Motor0.pid.processParam, Motor0.pid.pid_error);
+			//sprintf(txbuff, "debug1 = %f\tdebug2 = %f\tdebug3 = %f\n\r", Motor0.debug1, Motor0.debug2, Motor0.debug3);
+			HAL_UART_Transmit(&huart2, (uint8_t*)txbuff, strlen(txbuff), 0xff);
 		}
 
-		if (HAL_GetTick() - PIDStopwatch > 1000)
+		if (HAL_GetTick() - PIDStopwatch > PID_TD)
 		{
 			PIDStopwatch = HAL_GetTick();
+			PID_Compute(&Motor0);
+			PID_Compute(&Motor1);
+
+			if (Motor0.velSet >= 0) HAL_GPIO_WritePin(Motor0_DIR_Port, Motor0_DIR_Pin, Motor_FORWARD);
+			else HAL_GPIO_WritePin(Motor0_DIR_Port, Motor0_DIR_Pin, Motor_REVERSE);
+
+			if (Motor1.velSet >= 0) HAL_GPIO_WritePin(Motor1_DIR_Port, Motor1_DIR_Pin, Motor_FORWARD);
+			else HAL_GPIO_WritePin(Motor1_DIR_Port, Motor1_DIR_Pin, Motor_REVERSE);
+
+			__HAL_TIM_SetCompare(&htim4, Motor0_TIM_Channel, (uint32_t) fabsf(Motor0.pid.rawOut));
+			__HAL_TIM_SetCompare(&htim4, Motor1_TIM_Channel, (uint32_t) fabsf(Motor1.pid.rawOut));
+
+
+
+			//void PID_CheckMotorDir();
+
+			/*
+			if (Motor0.pid.processParam > 0 & Motor0.velSet > 0) HAL_GPIO_WritePin(Motor0_DIR_Port, Motor0_DIR_Pin, Motor_FORWARD);
+			else if (Motor0.pid.processParam < 0 & Motor0.velSet < 0) HAL_GPIO_WritePin(Motor0_DIR_Port, Motor0_DIR_Pin, Motor_REVERSE);
+
+			if (Motor1.pid.processParam > 0 & Motor1.velSet > 0) HAL_GPIO_WritePin(Motor1_DIR_Port, Motor1_DIR_Pin, Motor_FORWARD);
+			else if (Motor1.pid.processParam < 0 & Motor1.velSet < 0) HAL_GPIO_WritePin(Motor1_DIR_Port, Motor1_DIR_Pin, Motor_REVERSE);
+			*/
 		}
+	}
+}
+
+void PID_CheckMotorDir(void)
+{
+	// If we have switched direction, and the output voltage enters the deadzone - change the direction electrically.
+	if (Motor0.state == Reverse & Motor0.velSet > 0 & Motor0.pid.processParam > -500)
+	{
+		Motor0.state = Forward;
+		HAL_GPIO_WritePin(Motor0_DIR_Port, Motor0_DIR_Pin, Motor_FORWARD);
+	}
+
+	// If we have switched direction, and the output voltage enters the deadzone - change the direction electrically.
+	if (Motor0.state == Forward & Motor0.velSet < 0 & Motor0.pid.processParam < 500)
+	{
+		Motor0.state = Reverse;
+		HAL_GPIO_WritePin(Motor0_DIR_Port, Motor0_DIR_Pin, Motor_REVERSE);
+	}
+
+	// If we have switched direction, and the output voltage enters the deadzone - change the direction electrically.
+	if (Motor1.state == Reverse & Motor1.velSet > 0 & Motor1.pid.processParam > -500)
+	{
+		Motor1.state = Forward;
+		HAL_GPIO_WritePin(Motor1_DIR_Port, Motor1_DIR_Pin, Motor_FORWARD);
+	}
+
+	// If we have switched direction, and the output voltage enters the deadzone - change the direction electrically.
+	if (Motor1.state == Forward & Motor1.velSet < 0 & Motor1.pid.processParam < 500)
+	{
+		Motor1.state = Reverse;
+		HAL_GPIO_WritePin(Motor1_DIR_Port, Motor1_DIR_Pin, Motor_REVERSE);
 	}
 }
 
@@ -60,6 +119,33 @@ void PIDMotors_Init(void)
 	motorA_params.Kp = 0.15f;
 	motorA_params.Ki = 0.001f;
 	motorA_params.Kd = 0.0f;
+/*
+	PIDHardware_TypeDef hwDef0;
+	hwDef0.encA_PORT = Encoder0_A_Port;
+	hwDef0.encA_PIN = Encoder0_A_Pin;
+	hwDef0.encB_PORT = Encoder0_B_Port;
+	hwDef0.encB_PIN = Encoder0_B_Pin;
+	hwDef0.DIR_PORT = Motor0_DIR_Port;
+	hwDef0.DIR_PIN = Motor0_DIR_Pin;
+	hwDef0.PWM_PORT = Motor0_PWM_Port;
+	hwDef0.PWM_PIN = Motor0_PWM_Pin;
+	hwDef0.TIM_CHANNEL = Motor0_TIM_Channel;
+
+	PIDHardware_TypeDef hwDef1;
+	hwDef1.encA_PORT = Encoder1_A_Port;
+	hwDef1.encA_PIN = Encoder1_A_Pin;
+	hwDef1.encB_PORT = Encoder1_B_Port;
+	hwDef1.encB_PIN = Encoder1_B_Pin;
+	hwDef1.DIR_PORT = Motor1_DIR_Port;
+	hwDef1.DIR_PIN = Motor1_DIR_Pin;
+	hwDef1.PWM_PORT = Motor1_PWM_Port;
+	hwDef1.PWM_PIN = Motor1_PWM_Pin;
+	hwDef1.TIM_CHANNEL = Motor1_TIM_Channel;
+*/
+	HAL_GPIO_WritePin(Motor0_DIR_Port, Motor0_DIR_Pin, Motor_FORWARD);
+	HAL_GPIO_WritePin(Motor1_DIR_Port, Motor1_DIR_Pin, Motor_FORWARD);
+	Motor0.state = Forward;
+	Motor1.state = Forward;
 
 	Motor_Init(&Motor0, motorA_params, PID_TD, PWM_PERIOD, 5000.0);
 	Motor_Init(&Motor1, motorA_params, PID_TD, PWM_PERIOD, 5000.0);
@@ -83,6 +169,20 @@ void GPIO_Init(void)
 	gpioinitstruct.Pull   = GPIO_NOPULL;
 	gpioinitstruct.Speed  = GPIO_SPEED_FREQ_HIGH;
 	HAL_GPIO_Init(GPIOA, &gpioinitstruct);
+
+	// Set the Motor 0 DIR pin as output
+	gpioinitstruct.Pin = Motor0_DIR_Pin;
+	gpioinitstruct.Mode = GPIO_MODE_OUTPUT_PP;
+	gpioinitstruct.Pull   = GPIO_NOPULL;
+	gpioinitstruct.Speed  = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(Motor0_DIR_Port, &gpioinitstruct);
+
+	// Set the Motor 1 DIR pin as output
+	gpioinitstruct.Pin = Motor1_DIR_Pin;
+	gpioinitstruct.Mode = GPIO_MODE_OUTPUT_PP;
+	gpioinitstruct.Pull   = GPIO_NOPULL;
+	gpioinitstruct.Speed  = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(Motor1_DIR_Port, &gpioinitstruct);
 
 	// Set encoder 1 A signal as an interrupt for both rising and falling edge
 	gpioinitstruct.Pin = Encoder0_A_Pin;
@@ -264,8 +364,6 @@ void TIM4_Init(void)
 	GPIO_InitStruct.Alternate = GPIO_AF2_TIM4;
 	HAL_GPIO_Init(Motor1_PWM_Port, &GPIO_InitStruct);
 
-	__HAL_TIM_SetCompare(&htim4, TIM_CHANNEL_1, 2000);
-	__HAL_TIM_SetCompare(&htim4, TIM_CHANNEL_3, 4000);
 }
 
 
@@ -359,6 +457,8 @@ void parseCommand()
 				// Set the velocity
 				if (sscanf(cmdbuff+2, "%f", &tempfloat1) != EOF)
 				{
+					if (motorIndex == 0) Motor0.velSet = tempfloat1;//PID_VelSet(&Motor0, tempfloat1);
+					if (motorIndex == 1) Motor1.velSet = tempfloat1;//PID_VelSet(&Motor1, tempfloat1);
 					sprintf(txbuff, "I saw mot = %d\tV = %f\n\r", motorIndex, tempfloat1);
 					HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
 				}

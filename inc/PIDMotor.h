@@ -15,6 +15,23 @@ extern "C" {
 #include "stdint.h"
 #include "stm32l4xx.h"
 
+typedef enum {
+	Forward,
+	Reverse
+} PIDMotor_State;
+
+typedef struct {
+	GPIO_TypeDef 	encA_PORT;
+	uint16_t		encA_PIN;
+	GPIO_TypeDef 	encB_PORT;
+	uint16_t		encB_PIN;
+	GPIO_TypeDef 	DIR_PORT;
+	uint16_t		DIR_PIN;
+	GPIO_TypeDef 	PWM_PORT;
+	uint16_t		PWM_PIN;
+	uint32_t 		TIM_CHANNEL;
+} PIDHardware_TypeDef;
+
 typedef struct {
 	float Kp;
 	float Ki;
@@ -33,11 +50,14 @@ typedef struct {
 	uint32_t out;
 	float rawOut;
 	float processParam;
+	float pid_error;
 
 } PIDControl_TypeDef;
 
 typedef struct {
 	PIDControl_TypeDef pid;
+	PIDMotor_State state;
+	PIDHardware_TypeDef hw;
 
 	uint32_t encState;
 	int32_t encPos; // TODO: Add functionality to wrap-around if we go past +2^31-1 or -2^31
@@ -45,6 +65,10 @@ typedef struct {
 
 	float vel; // Current velocity
 	float velSet; // Velocity set point
+
+	float debug1;
+	float debug2;
+	float debug3;
 
 
 
@@ -62,7 +86,6 @@ extern void PID_Compute(PIDMotor_TypeDef *motor);
 
 // Set the velocity (in encoder ticks per second)
 extern void Motor_Vel_Set(PIDMotor_TypeDef *motor, float vel);
-
 
 #ifdef __cplusplus
 }

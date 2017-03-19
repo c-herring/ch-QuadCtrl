@@ -85,7 +85,7 @@ void EXTI15_10_IRQHandler(void)
 	// Check which interrupt was triggered, clear the interrupt before we handle it
 	if (__HAL_GPIO_EXTI_GET_IT(Encoder0_A_Pin) != RESET) __HAL_GPIO_EXTI_CLEAR_IT(Encoder0_A_Pin);
 	if (__HAL_GPIO_EXTI_GET_IT(Encoder0_B_Pin) != RESET) __HAL_GPIO_EXTI_CLEAR_IT(Encoder0_B_Pin);
-	if (__HAL_GPIO_EXTI_GET_IT(Encoder1_B_Pin) != RESET) __HAL_GPIO_EXTI_CLEAR_IT(Encoder1_A_Pin);
+	if (__HAL_GPIO_EXTI_GET_IT(Encoder1_A_Pin) != RESET) __HAL_GPIO_EXTI_CLEAR_IT(Encoder1_A_Pin);
 	if (__HAL_GPIO_EXTI_GET_IT(Encoder1_B_Pin) != RESET) __HAL_GPIO_EXTI_CLEAR_IT(Encoder1_B_Pin);
 
 	// Shift old encoder state left two bits
