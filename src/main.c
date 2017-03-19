@@ -364,8 +364,7 @@ void parseCommand()
 				}
 				else
 				{
-					// If a velocity
-					cannot be read, it is invalid.
+					// If a velocity cannot be read, it is invalid.
 					motorIndex = -1;
 				}
 				break;
