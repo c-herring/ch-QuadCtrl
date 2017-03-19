@@ -330,7 +330,10 @@ void SystemClock_Config(void)
 void parseCommand()
 {
 	int motorIndex = -1;
-	float tempfloat;
+	PIDParams_TypeDef PID_Params;
+	float tempfloat1;
+	float tempfloat2;
+	float tempfloat3;
 
 	switch (cmdbuff[0])
 	{
@@ -354,19 +357,44 @@ void parseCommand()
 		{
 			case 'V':
 				// Set the velocity
-				if (sscanf(cmdbuff+2, "%f", &tempfloat) != EOF)
+				if (sscanf(cmdbuff+2, "%f", &tempfloat1) != EOF)
 				{
-					sprintf(txbuff, "I saw mot = %d\tV = %f\n\r", motorIndex, tempfloat);
+					sprintf(txbuff, "I saw mot = %d\tV = %f\n\r", motorIndex, tempfloat1);
 					HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
+				}
+				else
+				{
+					// If a velocity
+					cannot be read, it is invalid.
+					motorIndex = -1;
 				}
 				break;
 			case 'v':
 				// Return the velocity
+				if (motorIndex == 0) sprintf(txbuff, "0v%f", Motor0.vel);
+				if (motorIndex == 1) sprintf(txbuff, "1v%f", Motor1.vel);
+				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
 				break;
 			case 'p':
 				// Return current encoder position
 				if (motorIndex == 0) sprintf(txbuff, "0p%d", Motor0.encPos);
 				if (motorIndex == 1) sprintf(txbuff, "1p%d", Motor1.encPos);
+				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
+				break;
+			case 'K':
+				if (sscanf(cmdbuff+2, "p%fi%fd%f", &PID_Params.Kp, &PID_Params.Ki, &PID_Params.Kd) != 3)
+				{
+					// If exactly three values were not read, it was invalid command
+					motorIndex = -1;
+				} else
+				{
+					if (motorIndex == 0) PID_Init(&Motor0.pid, PID_Params);
+					if (motorIndex == 1) PID_Init(&Motor1.pid, PID_Params);
+				}
+				break;
+			case 'k':
+				if (motorIndex == 0) sprintf(txbuff, "0kp%fi%fd%f", Motor0.pid.params.Kp, Motor0.pid.params.Ki, Motor0.pid.params.Kd);
+				if (motorIndex == 1) sprintf(txbuff, "1kp%fi%fd%f", Motor1.pid.params.Kp, Motor1.pid.params.Ki, Motor1.pid.params.Kd);
 				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
 				break;
 
