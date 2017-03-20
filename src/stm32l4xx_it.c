@@ -50,6 +50,14 @@ void USART2_IRQHandler(void)
 	HAL_UART_IRQHandler(&huart2);
 }
 
+//
+// USART3 Interrupt handler
+//
+void USART3_IRQHandler(void)
+{
+	HAL_UART_IRQHandler(&huart3);
+}
+
 // Handle the callback for UART2 DMA RX
 void DMA1_Channel6_IRQHandler(void)
 {
@@ -57,25 +65,43 @@ void DMA1_Channel6_IRQHandler(void)
     HAL_DMA_IRQHandler(&hdma_usart2_rx);
 }
 
+// Handle the callback for UART3 DMA RX
+void DMA1_Channel3_IRQHandler(void)
+{
+    HAL_NVIC_ClearPendingIRQ(DMA1_Channel3_IRQn);
+    HAL_DMA_IRQHandler(&hdma_usart3_rx);
+}
+
 // DMA RX callback for UART. Half complete callback is triggered every time we get a char.
 // Complete callback will never trigger as it is a circular buffer.
 void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
 {
-	__HAL_UART_FLUSH_DRREGISTER(&huart2); // Clear the buffer to prevent overrun
+	if (huart->Instance == USART2)
+	{
+		__HAL_UART_FLUSH_DRREGISTER(&huart2); // Clear the buffer to prevent overrun
 
-	// Return character is seen, or we have exceeded the buffer length (-1 to leave room for null)
-	if (rxB == '\r' | cmdBuffIndex > MAX_CMD_BUFFER_LEN-2)
+		// Return character is seen, or we have exceeded the buffer length (-1 to leave room for null)
+		if (rxB2 == '\r' | cmdBuffIndex > MAX_CMD_BUFFER_LEN-2)
+		{
+			// Null terminate the string so sscanf can do it's job
+			cmdbuff[cmdBuffIndex] = '\0';
+			// Reset the index back to zero
+			cmdBuffIndex = 0;
+			// Parse the command
+			parseCommand();
+		} else
+		{
+			// Add this command to the buffer
+			cmdbuff[cmdBuffIndex++] = rxB2;
+		}
+
+	}
+
+	if (huart->Instance == USART3)
 	{
-		// Null terminate the string so sscanf can do it's job
-		cmdbuff[cmdBuffIndex] = '\0';
-		// Reset the index back to zero
-		cmdBuffIndex = 0;
-		// Parse the command
-		parseCommand();
-	} else
-	{
-		// Add this command to the buffer
-		cmdbuff[cmdBuffIndex++] = rxB;
+		__HAL_UART_FLUSH_DRREGISTER(&huart3); // Clear the buffer to prevent overrun
+		sprintf(txbuff3, "I saw %c\n\r", rxB3);
+		HAL_UART_Transmit_IT(&huart3, (uint8_t*)txbuff3, strlen(txbuff3));
 	}
 
 }

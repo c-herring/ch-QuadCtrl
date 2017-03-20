@@ -25,6 +25,8 @@ int main(void)
 	GPIO_Init();
 	// Init UART2
 	USART2_UART_Init();
+	// Init UART3
+	USART3_UART_Init();
 
 	PIDMotors_Init();
 
@@ -46,9 +48,11 @@ int main(void)
 			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 			LEDStopwatch = HAL_GetTick();
 			// Print some debug stuff
-			sprintf(txbuff, "abs = %lu\traw = %f\tvel0 = %f\tparam = %f\terror = %0.24f\n\r", (uint32_t) fabsf(Motor0.pid.rawOut), Motor0.pid.rawOut, Motor0.vel, Motor0.pid.processParam, Motor0.pid.pid_error);
-			//sprintf(txbuff, "debug1 = %f\tdebug2 = %f\tdebug3 = %f\n\r", Motor0.debug1, Motor0.debug2, Motor0.debug3);
-			HAL_UART_Transmit(&huart2, (uint8_t*)txbuff, strlen(txbuff), 0xff);
+			sprintf(txbuff2, "abs = %lu\traw = %f\tvel0 = %f\tparam = %f\terror = %0.24f\n\r", (uint32_t) fabsf(Motor0.pid.rawOut), Motor0.pid.rawOut, Motor0.vel, Motor0.pid.processParam, Motor0.pid.pid_error);
+			//sprintf(txbuff2, "debug1 = %f\tdebug2 = %f\tdebug3 = %f\n\r", Motor0.debug1, Motor0.debug2, Motor0.debug3);
+			HAL_UART_Transmit(&huart2, (uint8_t*)txbuff2, strlen(txbuff2), 0xff);
+			sprintf(txbuff3, "test\n\r");
+			HAL_UART_Transmit(&huart3, (uint8_t*)txbuff3, strlen(txbuff3), 0xff);
 		}
 
 		if (HAL_GetTick() - PIDStopwatch > PID_TD)
@@ -236,7 +240,29 @@ void USART2_UART_Init(void)
 	// Initialise UART2 buffers and start the circular RX buffer
 	cmdbuff[0] = '\0';
 	cmdBuffIndex = 0;
-	HAL_UART_Receive_DMA(&huart2, &rxB, 1);
+	HAL_UART_Receive_DMA(&huart2, &rxB2, 1);
+}
+
+//
+// Initialise UART3
+//
+void USART3_UART_Init(void)
+{
+
+	// This is all pretty self explaining.
+	huart3.Instance = USART3;
+	huart3.Init.BaudRate = 115200;
+	huart3.Init.WordLength = UART_WORDLENGTH_8B;
+	huart3.Init.StopBits = UART_STOPBITS_1;
+	huart3.Init.Parity = UART_PARITY_NONE;
+	huart3.Init.Mode = UART_MODE_TX_RX;
+	huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	HAL_UART_Init(&huart3);
+
+	// Initialise UART3 buffers and start the circular RX buffer
+	//cmdbuff[0] = '\0';
+	//cmdBuffIndex = 0;
+	HAL_UART_Receive_DMA(&huart3, &rxB3, 1);
 }
 
 /*
@@ -293,6 +319,53 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 		// Enable DMA interrupt
 		HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, UART_PRIORITY, UART_RX_SUBPRIORITY);
 		HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
+	}
+
+	// This function is called for all UART initialization.
+	if(huart->Instance==USART3)
+	{
+		// Enable the peripheral clock for PORTA GPIO
+		__GPIOC_CLK_ENABLE();
+		// Enable the clock associated with the UART2 peripheral
+		//__USART2_CLK_ENABLE();
+		__HAL_RCC_USART3_CLK_ENABLE();
+
+		// GPIO pins to be configured are 2 and 3. We want pullup pulldown mode
+		GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
+		GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+		GPIO_InitStruct.Pull = GPIO_NOPULL;
+		// Low speed is more than sufficient for our serial comms (<5MHz)
+		GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+		// Set the alternate function to AF7, USART2
+		GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+
+		// Init
+		HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+		HAL_NVIC_SetPriority(USART3_IRQn, 0, 0);
+		HAL_NVIC_EnableIRQ(USART3_IRQn);
+
+
+		// Get the DMA2 clock chooching
+		__HAL_RCC_DMA1_CLK_ENABLE();
+
+		// Set up DMA
+		hdma_usart3_rx.Instance = DMA1_Channel3;
+		hdma_usart3_rx.Init.Request = DMA_REQUEST_2;
+		hdma_usart3_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;// The direction id from peripheral to memory.
+		hdma_usart3_rx.Init.PeriphInc = DMA_PINC_ENABLE; // Do not increment the peripheral memory.
+		hdma_usart3_rx.Init.MemInc = DMA_MINC_DISABLE; // Do not increment the memory address.
+		hdma_usart3_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE; // DMA peripheral data size only needs to be one byte
+		hdma_usart3_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE; // As does the memory
+		hdma_usart3_rx.Init.Mode = 	DMA_CIRCULAR; // Circular will reload DMA_SxNDTR register after each transfer (DMA_SxNDTR is number of remaining data to be transfered)
+		hdma_usart3_rx.Init.Priority = 	DMA_PRIORITY_LOW; // Low priority
+		HAL_DMA_Init(&hdma_usart3_rx);
+
+		__HAL_LINKDMA(huart, hdmarx, hdma_usart3_rx);
+
+		// Enable DMA interrupt
+		HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
+		HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 	}
 }
 
@@ -365,7 +438,6 @@ void TIM4_Init(void)
 	HAL_GPIO_Init(Motor1_PWM_Port, &GPIO_InitStruct);
 
 }
-
 
 
 /** System Clock Configuration
@@ -459,8 +531,8 @@ void parseCommand()
 				{
 					if (motorIndex == 0) Motor0.velSet = tempfloat1;//PID_VelSet(&Motor0, tempfloat1);
 					if (motorIndex == 1) Motor1.velSet = tempfloat1;//PID_VelSet(&Motor1, tempfloat1);
-					sprintf(txbuff, "I saw mot = %d\tV = %f\n\r", motorIndex, tempfloat1);
-					HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
+					sprintf(txbuff2, "I saw mot = %d\tV = %f\n\r", motorIndex, tempfloat1);
+					HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
 				}
 				else
 				{
@@ -470,15 +542,15 @@ void parseCommand()
 				break;
 			case 'v':
 				// Return the velocity
-				if (motorIndex == 0) sprintf(txbuff, "0v%f", Motor0.vel);
-				if (motorIndex == 1) sprintf(txbuff, "1v%f", Motor1.vel);
-				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
+				if (motorIndex == 0) sprintf(txbuff2, "0v%f", Motor0.vel);
+				if (motorIndex == 1) sprintf(txbuff2, "1v%f", Motor1.vel);
+				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
 				break;
 			case 'p':
 				// Return current encoder position
-				if (motorIndex == 0) sprintf(txbuff, "0p%d", Motor0.encPos);
-				if (motorIndex == 1) sprintf(txbuff, "1p%d", Motor1.encPos);
-				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
+				if (motorIndex == 0) sprintf(txbuff2, "0p%d", Motor0.encPos);
+				if (motorIndex == 1) sprintf(txbuff2, "1p%d", Motor1.encPos);
+				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
 				break;
 			case 'K':
 				if (sscanf(cmdbuff+2, "p%fi%fd%f", &PID_Params.Kp, &PID_Params.Ki, &PID_Params.Kd) != 3)
@@ -492,9 +564,9 @@ void parseCommand()
 				}
 				break;
 			case 'k':
-				if (motorIndex == 0) sprintf(txbuff, "0kp%fi%fd%f", Motor0.pid.params.Kp, Motor0.pid.params.Ki, Motor0.pid.params.Kd);
-				if (motorIndex == 1) sprintf(txbuff, "1kp%fi%fd%f", Motor1.pid.params.Kp, Motor1.pid.params.Ki, Motor1.pid.params.Kd);
-				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
+				if (motorIndex == 0) sprintf(txbuff2, "0kp%fi%fd%f", Motor0.pid.params.Kp, Motor0.pid.params.Ki, Motor0.pid.params.Kd);
+				if (motorIndex == 1) sprintf(txbuff2, "1kp%fi%fd%f", Motor1.pid.params.Kp, Motor1.pid.params.Ki, Motor1.pid.params.Kd);
+				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
 				break;
 
 			// COmmand is not recognised
@@ -505,8 +577,8 @@ void parseCommand()
 
 	if (motorIndex == -1)
 	{
-		sprintf(txbuff, "?%s\n\r", cmdbuff);
-		HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff, strlen(txbuff));
+		sprintf(txbuff2, "?%s\n\r", cmdbuff);
+		HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
 	}
 
 }

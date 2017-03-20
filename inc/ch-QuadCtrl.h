@@ -28,8 +28,12 @@ extern "C" {
 // ------- UART Stuff --------
 // Create a global UART2 Handle
 UART_HandleTypeDef huart2;
+// Create a global UART3 Handle
+UART_HandleTypeDef huart3;
 // Create a global DMA handle that will be connected to UART2 receive
 DMA_HandleTypeDef hdma_usart2_rx;
+// Create a global DMA handle that will be connected to UART3 receive
+DMA_HandleTypeDef hdma_usart3_rx;
 
 // UART NVIC Priorities
 #define UART_PRIORITY         6
@@ -40,10 +44,12 @@ DMA_HandleTypeDef hdma_usart2_rx;
 #define MAX_CMD_BUFFER_LEN 50
 
 // Allocate buffers
-char txbuff[MAX_TX_BUFFER_LEN]; 	// Transmit buffer
+char txbuff2[MAX_TX_BUFFER_LEN]; 	// Transmit buffer
+char txbuff3[MAX_TX_BUFFER_LEN]; 	// Transmit buffer
 char cmdbuff[MAX_CMD_BUFFER_LEN];	// Receive buffer
 int32_t cmdBuffIndex;				// Current position in the RX buffer
-uint8_t rxB;						// Single RX byte from the circular DMA buffer
+uint8_t rxB2;						// Single RX byte from the circular DMA buffer
+uint8_t rxB3;						// Single RX byte from the circular DMA buffer
 
 // ------- Timer and PWM stuff -------
 // PWM timer handle
@@ -75,6 +81,7 @@ extern int8_t lookup_table[];
 extern void GPIO_Init(void);
 void SystemClock_Config(void);
 void USART2_UART_Init(void);
+void USART3_UART_Init(void);
 void GPIO_Init(void);
 void TIM4_Init(void);
 void PIDMotors_Init(void);
