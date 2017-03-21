@@ -19,6 +19,7 @@ void Motor_Init(PIDMotor_TypeDef *motor, PIDParams_TypeDef _pid_params, uint32_t
 	PID_Init(&motor->pid, _pid_params);
 	motor->pid.pidRate = _pidRate;
 	motor->pid.outLim = _pwmPeriod;
+	motor->pid.outLimLower = (int32_t) (_pwmPeriod * PID_OUTPUT_DEADZONE_PERCENT/100);
 
 	motor->pid.error = 0.0f;
 	motor->pid.prev_error = 0.0f;
@@ -75,11 +76,11 @@ void PID_Compute(PIDMotor_TypeDef *motor)
 
 	if (motor->velSet >= 0)
 	{
-		motor->pid.rawOut = (motor->pid.processParam > 0) ? motor->pid.processParam : 0;
+		motor->pid.rawOut = (motor->pid.processParam > motor->pid.outLimLower) ? motor->pid.processParam : 0;
 	}
 	else
 	{
-		motor->pid.rawOut = (motor->pid.processParam < 0) ? -motor->pid.processParam : 0;
+		motor->pid.rawOut = (motor->pid.processParam < -motor->pid.outLimLower) ? -motor->pid.processParam : 0;
 	}
 
 	//if (motor->velSet >= 0)

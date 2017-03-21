@@ -76,12 +76,12 @@ void DMA1_Channel3_IRQHandler(void)
 // Complete callback will never trigger as it is a circular buffer.
 void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
 {
-	if (huart->Instance == USART2)
+	if (huart->Instance == USART3)
 	{
-		__HAL_UART_FLUSH_DRREGISTER(&huart2); // Clear the buffer to prevent overrun
+		__HAL_UART_FLUSH_DRREGISTER(&huart3); // Clear the buffer to prevent overrun
 
 		// Return character is seen, or we have exceeded the buffer length (-1 to leave room for null)
-		if (rxB2 == '\r' | cmdBuffIndex > MAX_CMD_BUFFER_LEN-2)
+		if (rxB3 == '\r' | cmdBuffIndex > MAX_CMD_BUFFER_LEN-2)
 		{
 			// Null terminate the string so sscanf can do it's job
 			cmdbuff[cmdBuffIndex] = '\0';
@@ -92,16 +92,16 @@ void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
 		} else
 		{
 			// Add this command to the buffer
-			cmdbuff[cmdBuffIndex++] = rxB2;
+			cmdbuff[cmdBuffIndex++] = rxB3;
 		}
 
 	}
 
-	if (huart->Instance == USART3)
+	if (huart->Instance == USART2)
 	{
-		__HAL_UART_FLUSH_DRREGISTER(&huart3); // Clear the buffer to prevent overrun
-		sprintf(txbuff3, "I saw %c\n\r", rxB3);
-		HAL_UART_Transmit_IT(&huart3, (uint8_t*)txbuff3, strlen(txbuff3));
+		__HAL_UART_FLUSH_DRREGISTER(&huart2); // Clear the buffer to prevent overrun
+		sprintf(txbuff2, "I saw %c\n\r", rxB2);
+		HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
 	}
 
 }

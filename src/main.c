@@ -51,8 +51,8 @@ int main(void)
 			sprintf(txbuff2, "abs = %lu\traw = %f\tvel0 = %f\tparam = %f\terror = %0.24f\n\r", (uint32_t) fabsf(Motor0.pid.rawOut), Motor0.pid.rawOut, Motor0.vel, Motor0.pid.processParam, Motor0.pid.pid_error);
 			//sprintf(txbuff2, "debug1 = %f\tdebug2 = %f\tdebug3 = %f\n\r", Motor0.debug1, Motor0.debug2, Motor0.debug3);
 			HAL_UART_Transmit(&huart2, (uint8_t*)txbuff2, strlen(txbuff2), 0xff);
-			sprintf(txbuff3, "test\n\r");
-			HAL_UART_Transmit(&huart3, (uint8_t*)txbuff3, strlen(txbuff3), 0xff);
+			//sprintf(txbuff3, "test\n\r");
+			//HAL_UART_Transmit(&huart3, (uint8_t*)txbuff3, strlen(txbuff3), 0xff);
 		}
 
 		if (HAL_GetTick() - PIDStopwatch > PID_TD)
@@ -515,6 +515,10 @@ void parseCommand()
 		case '1':
 			motorIndex = 1;
 			break;
+		case '?':
+			sprintf(txbuff3, "%s", VERSION);
+			HAL_UART_Transmit_IT(&huart3, (uint8_t*)txbuff3, strlen(txbuff3));
+			return;
 		// No Motor is specified, CMD is invalid
 		default:
 			motorIndex = -1;
@@ -525,14 +529,13 @@ void parseCommand()
 	{
 		switch (cmdbuff[1])
 		{
+
 			case 'V':
 				// Set the velocity
 				if (sscanf(cmdbuff+2, "%f", &tempfloat1) != EOF)
 				{
 					if (motorIndex == 0) Motor0.velSet = tempfloat1;//PID_VelSet(&Motor0, tempfloat1);
 					if (motorIndex == 1) Motor1.velSet = tempfloat1;//PID_VelSet(&Motor1, tempfloat1);
-					sprintf(txbuff2, "I saw mot = %d\tV = %f\n\r", motorIndex, tempfloat1);
-					HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
 				}
 				else
 				{
@@ -542,15 +545,15 @@ void parseCommand()
 				break;
 			case 'v':
 				// Return the velocity
-				if (motorIndex == 0) sprintf(txbuff2, "0v%f", Motor0.vel);
-				if (motorIndex == 1) sprintf(txbuff2, "1v%f", Motor1.vel);
-				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
+				if (motorIndex == 0) sprintf(txbuff3, "0v%f", Motor0.vel);
+				if (motorIndex == 1) sprintf(txbuff3, "1v%f", Motor1.vel);
+				HAL_UART_Transmit_IT(&huart3, (uint8_t*)txbuff3, strlen(txbuff3));
 				break;
 			case 'p':
 				// Return current encoder position
-				if (motorIndex == 0) sprintf(txbuff2, "0p%d", Motor0.encPos);
-				if (motorIndex == 1) sprintf(txbuff2, "1p%d", Motor1.encPos);
-				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
+				if (motorIndex == 0) sprintf(txbuff3, "0p%d", Motor0.encPos);
+				if (motorIndex == 1) sprintf(txbuff3, "1p%d", Motor1.encPos);
+				HAL_UART_Transmit_IT(&huart3, (uint8_t*)txbuff3, strlen(txbuff3));
 				break;
 			case 'K':
 				if (sscanf(cmdbuff+2, "p%fi%fd%f", &PID_Params.Kp, &PID_Params.Ki, &PID_Params.Kd) != 3)
@@ -564,9 +567,9 @@ void parseCommand()
 				}
 				break;
 			case 'k':
-				if (motorIndex == 0) sprintf(txbuff2, "0kp%fi%fd%f", Motor0.pid.params.Kp, Motor0.pid.params.Ki, Motor0.pid.params.Kd);
-				if (motorIndex == 1) sprintf(txbuff2, "1kp%fi%fd%f", Motor1.pid.params.Kp, Motor1.pid.params.Ki, Motor1.pid.params.Kd);
-				HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
+				if (motorIndex == 0) sprintf(txbuff3, "0kp%fi%fd%f", Motor0.pid.params.Kp, Motor0.pid.params.Ki, Motor0.pid.params.Kd);
+				if (motorIndex == 1) sprintf(txbuff3, "1kp%fi%fd%f", Motor1.pid.params.Kp, Motor1.pid.params.Ki, Motor1.pid.params.Kd);
+				HAL_UART_Transmit_IT(&huart3, (uint8_t*)txbuff3, strlen(txbuff3));
 				break;
 
 			// COmmand is not recognised
@@ -577,8 +580,8 @@ void parseCommand()
 
 	if (motorIndex == -1)
 	{
-		sprintf(txbuff2, "?%s\n\r", cmdbuff);
-		HAL_UART_Transmit_IT(&huart2, (uint8_t*)txbuff2, strlen(txbuff2));
+		sprintf(txbuff3, "?%s", cmdbuff);
+		HAL_UART_Transmit_IT(&huart3, (uint8_t*)txbuff3, strlen(txbuff3));
 	}
 
 }

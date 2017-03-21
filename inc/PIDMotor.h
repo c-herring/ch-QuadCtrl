@@ -15,6 +15,8 @@ extern "C" {
 #include "stdint.h"
 #include "stm32l4xx.h"
 
+#define PID_OUTPUT_DEADZONE_PERCENT 1.0f // If the output is less than this percent of full scale, just turn the motor off.
+
 typedef enum {
 	Forward,
 	Reverse
@@ -47,6 +49,7 @@ typedef struct {
 	float Ierror_limit;
 	uint32_t pidRate; //
 	float outLim;
+	int32_t outLimLower;
 	uint32_t out;
 	float rawOut;
 	float processParam;
@@ -69,8 +72,6 @@ typedef struct {
 	float debug1;
 	float debug2;
 	float debug3;
-
-
 
 }PIDMotor_TypeDef;
 

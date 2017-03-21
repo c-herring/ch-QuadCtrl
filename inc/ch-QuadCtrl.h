@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#define VERSION "ch-QuadCtrl\t1.0"
+
 // ------- Hardware Definitions -------
 // Pin and port for encoder signals. Note these are handled in the 10-15 ISR, so must be pins 10-15
 #define Encoder0_A_Port	GPIOA
