@@ -48,7 +48,7 @@ int main(void)
 			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 			LEDStopwatch = HAL_GetTick();
 			// Print some debug stuff
-			sprintf(txbuff2, "abs = %lu\traw = %f\tvel0 = %f\tparam = %f\terror = %0.24f\n\r", (uint32_t) fabsf(Motor0.pid.rawOut), Motor0.pid.rawOut, Motor0.vel, Motor0.pid.processParam, Motor0.pid.pid_error);
+			sprintf(txbuff2, "abs = %lu\traw = %f\tvel0 = %f\tparam = %f\terror = %0.24f\n\r", (uint32_t) fabsf(Motor0.pid.rawOut), Motor0.pid.rawOut, Motor0.vel, Motor0.velSet, Motor0.pid.pid_error);
 			//sprintf(txbuff2, "debug1 = %f\tdebug2 = %f\tdebug3 = %f\n\r", Motor0.debug1, Motor0.debug2, Motor0.debug3);
 			HAL_UART_Transmit(&huart2, (uint8_t*)txbuff2, strlen(txbuff2), 0xff);
 			//sprintf(txbuff3, "test\n\r");
